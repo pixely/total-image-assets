@@ -104,10 +104,16 @@ consola.log(argv);
 
   progress.start(images.length, 0);
   const sizes = [];
-  for (image of images) {
+
+  // Disable to allow us to throttle async requests
+  // eslint-disable-next-line no-restricted-syntax
+  for (const image of images) {
     progress.increment();
     let imageRequest;
     try {
+      // Disable to allow us to wait for the page to load - we intentionally
+      // don't want to fire all requests off asyncronously
+      // eslint-disable-next-line no-await-in-loop
       imageRequest = await page.goto(image);
 
       if (imageRequest !== null
@@ -116,7 +122,7 @@ consola.log(argv);
       ) {
         sizes.push({
           url: imageRequest.url(),
-          size: parseInt(imageRequest.headers()['content-length']),
+          size: parseInt(imageRequest.headers()['content-length'], 10),
         });
       }
     } catch (err) {
