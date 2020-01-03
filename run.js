@@ -51,15 +51,7 @@ consola.log(argv);
 
   const extractSrcset = (srcset) => srcset.split(/,| /).filter((src) => src.includes('//')).map((src) => src.trim());
 
-  const extractImages = async (attribute) => Array.from(await page.$$(`[${attribute}]`));
-  // const isTachyonImage = (imageUrl) => imageUrl;
-
-  // const isTachyonImage = imageUrl => imageUrl.includes('images.') && imageUrl.includes('.immediate.co.uk')
-  // const isTachyonImage = (imageUrl) => imageUrl.match(/\bimages\.\w+\.immediate.co.uk\b/g);
-  const isTachyonImage = (imageUrl) => imageUrl.match(new RegExp(argv.filterExp));
-
-
-  const findImages = async (handler) => {
+  const findImages = async () => {
     const src = await page.$$eval('[src]', (images) => Array.from(images).map((image) => image.src));
     const dataSrc = await page.$$eval('[data-src]', (images) => Array.from(images).map((image) => image.dataset.src));
     const content = await page.$$eval('[content]', (images) => Array.from(images).map((image) => image.content));
@@ -67,22 +59,16 @@ consola.log(argv);
     const srcset = await page.$$eval('[srcset]', (images) => Array.from(images).map((image) => image.srcset));
     const dataSrcset = await page.$$eval('[data-srcset]', (images) => Array.from(images).map((image) => image.dataset.srcset));
 
-    const extractedSrcsetUrls = [...srcset, ...dataSrcset].map((i) => extractSrcset(i)).reduce((acc, cur) => [...acc, ...cur], []);
+    const extractedSrcsetUrls = [...srcset, ...dataSrcset]
+      .map((i) => extractSrcset(i)).reduce((acc, cur) => [...acc, ...cur], []);
 
-    // const content = extractImages('content').map(content => content.content );
-    // const href = extractImages('href').map(href => href.href );
-    // const srcsets = extractImages('srcset').map(srcset => extractSrcset(srcset.srcset)).reduce((acc, cur) => [...acc, ...cur],[]);
-    // const dataSrcsets = extractImages('data-srcset').map(srcset => extractSrcset(srcset.dataset.srcset)).reduce((acc, cur) => [...acc, ...cur],[]);
-    // return [...src];
     return [...src, ...dataSrc, ...content, ...href, ...extractedSrcsetUrls].filter(isValidURL);
-    // return [...src, ...srcsets, ...content, ...href, ...dataSrc, ...dataSrcsets].filter(item => item);
   };
 
   const dedupImages = (images) => Array.from(new Set(images));
-  // const filterImages = images => images.filter(imageUrl => imageUrl.includes('images.') && imageUrl.includes('.immediate.co.uk'))
-  // const filterImages = images => images.filter(imageUrl => imageUrl.match(/\bimages\.\w+\.immediate.co.uk\b/g))
 
-  const filterImages = (images) => images.filter((imageUrl) => imageUrl.match(new RegExp(argv.filter)));
+  const filterImages = (images) => images
+    .filter((imageUrl) => imageUrl.match(new RegExp(argv.filter)));
 
   const allImages = await findImages();
 
