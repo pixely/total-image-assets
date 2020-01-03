@@ -1,0 +1,17 @@
+{
+  "name": "total-image-assets",
+  "version": "0.0.0",
+  "description": "Node CLI tool for parsing a webpage to find the total number of potential images that the page could load, and the combined size of these assets",
+  "main": "run.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Graham Martin",
+  "license": "ISC",
+  "dependencies": {
+    "cli-progress": "^3.4.0",
+    "consola": "^2.11.3",
+    "puppeteer": "^2.0.0",
+    "yargs": "^15.1.0"
+  }
+}
