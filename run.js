@@ -4,21 +4,21 @@ const cliProgress = require('cli-progress');
 const yargs = require('yargs');
 
 const { argv } = yargs
-  .command('lyr', 'Tells whether an year is leap year or not', {
-    year: {
-      description: 'the year to check for',
-      alias: 'y',
-      type: 'number',
+  .command('total-image-requests', 'Parses a URL for all possible image requests', {
+    url: {
+      description: 'URL you want to parse',
+      alias: 'url',
+      type: 'string',
     },
-  })
-  .option('time', {
-    alias: 't',
-    description: 'Tell the present Time',
-    type: 'boolean',
   })
   .option('url', {
     alias: 'u',
     description: 'URL you want to parse',
+    type: 'string',
+  })
+  .option('filter', {
+    alias: 'f',
+    description: 'RegularExpression used to filter your responses',
     type: 'string',
   })
   .demandOption(['url'], 'Please provide a URL to parse')
@@ -37,21 +37,29 @@ const isValidURL = (string) => {
   const page = await browser.newPage();
 
   const { url } = argv;
+
+  if (!isValidURL(url)) {
+    consola.fatal(`"${url}" is not a valid URL`);
+    process.exit();
+  }
+
   consola.info(`Parsing ${url} for all potential images`);
 
   await page.goto(url);
 
-
-
+  if (!page) {
+    consola.fatal(`Invalid response from ${url}. Unable to parse.`);
+    process.exit();
+  }
 
   const extractSrcset = (srcset) => srcset.split(/,| /).filter((src) => src.includes('//')).map((src) => src.trim());
 
   const extractImages = async (attribute) => Array.from(await page.$$(`[${attribute}]`));
-
-  const isTachyonImage = (imageUrl) => imageUrl;
+  // const isTachyonImage = (imageUrl) => imageUrl;
 
   // const isTachyonImage = imageUrl => imageUrl.includes('images.') && imageUrl.includes('.immediate.co.uk')
-  // const isTachyonImage = imageUrl => imageUrl.match(/\bimages\.\w+\.immediate.co.uk\b/g);
+  // const isTachyonImage = (imageUrl) => imageUrl.match(/\bimages\.\w+\.immediate.co.uk\b/g);
+  const isTachyonImage = (imageUrl) => imageUrl.match(new RegExp(argv.filterExp));
 
 
   const findImages = async (handler) => {
@@ -74,7 +82,10 @@ const isValidURL = (string) => {
   };
 
   const dedupImages = (images) => Array.from(new Set(images));
-  const filterImages = (images) => images.filter(isTachyonImage);
+  // const filterImages = images => images.filter(imageUrl => imageUrl.includes('images.') && imageUrl.includes('.immediate.co.uk'))
+  // const filterImages = images => images.filter(imageUrl => imageUrl.match(/\bimages\.\w+\.immediate.co.uk\b/g))
+
+  const filterImages = (images) => images.filter((imageUrl) => imageUrl.match(new RegExp(argv.filter)));
 
   const allImages = await findImages();
 
@@ -83,11 +94,23 @@ const isValidURL = (string) => {
   consola.info(`- ${allImages.length} potential images`);
   const uniqueImages = dedupImages(allImages);
   consola.info(`- ${uniqueImages.length} unique potential images`);
-  const images = filterImages(uniqueImages);
-  consola.info(`- ${images.length} unique potential images matching filters`);
+
+  let images = [];
+  if (argv.filter) {
+    images = filterImages(uniqueImages, argv.filter);
+    consola.info(`- ${images.length} unique potential images matching filter "${argv.filter}"`);
+  } else {
+    images = uniqueImages;
+  }
+
   consola.log('');
   consola.log('📸  Auditing image sizes');
   consola.log('');
+
+  if (images.length === 0) {
+    consola.error('No potential images found');
+    process.exit();
+  }
 
   const progress = new cliProgress.SingleBar({
     hideCursor: true,
