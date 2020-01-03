@@ -5,6 +5,7 @@
   "main": "run.js",
   "scripts": {
     "lint": "eslint .",
+    "pretest": "npm run lint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Graham Martin",
