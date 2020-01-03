@@ -3,6 +3,8 @@ const consola = require('consola');
 const cliProgress = require('cli-progress');
 const yargs = require('yargs');
 
+const { isValidURL } = require('./src/utils');
+
 const { argv } = yargs
   .command('total-image-requests', 'Parses a URL for all possible image requests', {
     url: {
@@ -26,11 +28,6 @@ const { argv } = yargs
   .alias('help', 'h');
 
 consola.log(argv);
-
-const isValidURL = (string) => {
-  const regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/;
-  return regexp.test(string);
-};
 
 (async () => {
   const browser = await puppeteer.launch();
