@@ -1,9 +1,8 @@
 const puppeteer = require('puppeteer');
-const consola = require('consola');
-const cliProgress = require('cli-progress');
 const yargs = require('yargs');
 
 const { isValidURL } = require('./src/utils');
+const reporter = require('./src/reporter');
 
 const { argv } = yargs
   .command('total-image-requests', 'Parses a URL for all possible image requests', {
@@ -27,8 +26,6 @@ const { argv } = yargs
   .help()
   .alias('help', 'h');
 
-consola.log(argv);
-
 (async () => {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
@@ -36,17 +33,15 @@ consola.log(argv);
   const { url } = argv;
 
   if (!isValidURL(url)) {
-    consola.fatal(`"${url}" is not a valid URL`);
-    process.exit();
+    reporter.fatalError(`"${url}" is not a valid URL`);
   }
 
-  consola.info(`Parsing ${url} for all potential images`);
+  reporter.info(`Parsing ${url} for all potential images`);
 
   await page.goto(url);
 
   if (!page) {
-    consola.fatal(`Invalid response from ${url}. Unable to parse.`);
-    process.exit();
+    reporter.fatalError(`Invalid response from ${url}. Unable to parse.`);
   }
 
   const extractSrcset = (srcset) => srcset.split(/,| /).filter((src) => src.includes('//')).map((src) => src.trim());
@@ -72,43 +67,34 @@ consola.log(argv);
 
   const allImages = await findImages();
 
-  consola.log('');
-  consola.success('Found:');
-  consola.info(`- ${allImages.length} potential images`);
   const uniqueImages = dedupImages(allImages);
-  consola.info(`- ${uniqueImages.length} unique potential images`);
 
-  let images = [];
+  let filteredImages = null;
   if (argv.filter) {
-    images = filterImages(uniqueImages, argv.filter);
-    consola.info(`- ${images.length} unique potential images matching filter "${argv.filter}"`);
-  } else {
-    images = uniqueImages;
+    filteredImages = filterImages(uniqueImages, argv.filter);
   }
 
-  consola.log('');
-  consola.log('📸  Auditing image sizes');
-  consola.log('');
+  const images = filteredImages || uniqueImages;
+
+  reporter.auditInfo(
+    allImages.length,
+    uniqueImages.length,
+    filteredImages ? filteredImages.length : filteredImages,
+  );
 
   if (images.length === 0) {
-    consola.error('No potential images found');
-    process.exit();
+    reporter.fatalError('No potential images found');
   }
 
-  const progress = new cliProgress.SingleBar({
-    hideCursor: true,
-  },
-  cliProgress.Presets.shades_classic);
+  const progress = reporter.startProgress(images.length);
 
-  consola.pauseLogs();
-
-  progress.start(images.length, 0);
   const sizes = [];
 
   // Disable to allow us to throttle async requests
   // eslint-disable-next-line no-restricted-syntax
   for (const image of images) {
-    progress.increment();
+    reporter.updateProgress(progress);
+
     let imageRequest;
     try {
       // Disable to allow us to wait for the page to load - we intentionally
@@ -125,23 +111,19 @@ consola.log(argv);
           size: parseInt(imageRequest.headers()['content-length'], 10),
         });
       }
-    } catch (err) {
-      consola.log(imageRequest);
-      consola.error(image, err);
+    } catch (error) {
+      reporter.error(error);
     }
   }
 
-  progress.stop();
-  consola.resumeLogs();
-  consola.log('');
+  reporter.finishProgress(progress);
 
   const totalSize = sizes.reduce((acc, cur) => acc + cur.size, 0);
-  const totalSizeMb = Math.round((totalSize / 1000 / 1000) * 100) / 100;
 
-  consola.log('📸  Audit results');
-  consola.log('');
-  consola.success(`Total images: ${sizes.length}`);
-  consola.success(`Combined size: ${totalSizeMb}mb (${totalSize} bytes)`);
+  reporter.showResults(
+    sizes.length,
+    totalSize,
+  );
 
   await browser.close();
 })();
