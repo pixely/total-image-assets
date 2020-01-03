@@ -1,0 +1,27 @@
+{
+  "name": "total-image-assets",
+  "version": "0.0.0",
+  "description": "Node CLI tool for parsing a webpage to find the total number of potential images that the page could load, and the combined size of these assets",
+  "main": "run.js",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Graham Martin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixely/total-image-assets.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cli-progress": "^3.4.0",
+    "consola": "^2.11.3",
+    "puppeteer": "^2.0.0",
+    "yargs": "^15.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.19.1"
+  }
+}
